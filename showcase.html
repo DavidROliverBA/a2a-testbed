@@ -127,6 +127,26 @@ pre .same { color: var(--accent); background: color-mix(in srgb, var(--accent) 1
 .optable td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
 .tablewrap { overflow-x: auto; }
 
+/* patterns */
+.pats { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.pat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pat .top { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.pat.avoid .top { color: var(--bad); }
+.pat svg { width: 100%; height: auto; background: var(--panel2); border-radius: 8px; }
+.pat h3 { font-size: 17px; }
+.pat p { font-size: 13px; color: var(--muted); flex: 1; }
+.pat code { font-size: 11.5px; color: var(--accent); }
+.pat.avoid code { color: var(--muted); }
+.pn rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+.pn text { fill: var(--fg); font: 500 9.5px var(--body); text-anchor: middle; }
+.pn.hot rect { stroke: var(--accent); stroke-width: 2; }
+.pn.badn rect { stroke: var(--bad); stroke-width: 2; }
+.pw { fill: none; stroke: var(--line); stroke-width: 1.3; }
+.pw.badw { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 3 6; }
+.pd { fill: var(--pulse); } .pd.g { fill: var(--good); } .pd.b { fill: var(--bad); } .pd.a { fill: var(--accent); }
+.px { fill: none; stroke: var(--bad); stroke-width: 3; stroke-linecap: round; }
+.pl { font: 500 8.5px var(--mono); fill: var(--muted); text-anchor: middle; } .pl.w { fill: var(--pulse); } .pl.r { fill: var(--bad); }
+
 /* lessons */
 .lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .lesson { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; transition: border-color .2s, transform .2s; }
@@ -147,6 +167,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
 @media (prefers-reduced-motion: reduce) {
   .node.dim { animation: none; opacity: .85; }
   .lesson, .ev, .chk { transition: none; }
+  .pd { display: none; }
 }
 </style>
 
@@ -289,6 +310,72 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
         <tr><td>Cancel a task</td><td>CancelTask</td><td>POST /tasks/{id}:cancel</td></tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<section class="exhibit" id="patterns">
+  <header>
+    <div class="eyebrow">Architecture</div>
+    <h2>Four shapes to use, four to avoid</h2>
+    <p>With more than two agents, how you arrange them matters more than the messages. Each card says where this lab shows the shape, and where it doesn't.</p>
+  </header>
+  <div class="pats">
+    <article class="pat">
+      <div class="top"><span>Pattern 1</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="A client sends one request to a coordinator agent, which passes work to three specialist agents"><path class="pw " d="M68 60 H104"/><path class="pw " d="M188 60 C208 60 208 23 228 23"/><path class="pw " d="M188 60 H228"/><path class="pw " d="M188 60 C208 60 208 97 228 97"/><g class="pn "><rect x="6" y="45" width="62" height="30" rx="6"/><text x="37" y="63.5">your app</text></g><g class="pn hot"><rect x="104" y="45" width="84" height="30" rx="6"/><text x="146" y="63.5">coordinator</text></g><g class="pn "><rect x="228" y="8" width="66" height="30" rx="6"/><text x="261" y="26.5">flights</text></g><g class="pn "><rect x="228" y="45" width="66" height="30" rx="6"/><text x="261" y="63.5">hotels</text></g><g class="pn "><rect x="228" y="82" width="66" height="30" rx="6"/><text x="261" y="100.5">payments</text></g><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M68 60 H104" keyPoints="0;0;1;1" keyTimes="0;0.05;0.25;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M188 60 C208 60 208 23 228 23" keyPoints="0;0;1;1" keyTimes="0;0.3;0.6;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M188 60 H228" keyPoints="0;0;1;1" keyTimes="0;0.33999999999999997;0.64;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M188 60 C208 60 208 97 228 97" keyPoints="0;0;1;1" keyTimes="0;0.38;0.6799999999999999;1" calcMode="linear"/></circle></svg>
+      <h3>A coordinator with specialists</h3>
+      <p>One agent takes the request and hands parts of it to agents that each do one thing. The caller sees one agent and one task.</p>
+      <code>orchestrator · lesson 12</code>
+    </article>
+    <article class="pat">
+      <div class="top"><span>Pattern 2</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="A known caller passes through a gateway to the agent; an unknown caller is refused at the gateway"><path class="pw " d="M86 27 C104 27 104 52 122 52"/><path class="pw " d="M86 93 C104 93 104 68 122 68"/><path class="pw " d="M192 60 H228"/><g class="pn "><rect x="6" y="12" width="80" height="30" rx="6"/><text x="46" y="30.5">known caller</text></g><g class="pn "><rect x="6" y="78" width="80" height="30" rx="6"/><text x="46" y="96.5">unknown caller</text></g><g class="pn hot"><rect x="122" y="40" width="70" height="40" rx="6"/><text x="157" y="63.5">gateway</text></g><g class="pn "><rect x="228" y="45" width="66" height="30" rx="6"/><text x="261" y="63.5">agent</text></g><circle class="pd g" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M86 27 C104 27 104 52 122 52" keyPoints="0;0;1;1" keyTimes="0;0.05;0.3;1" calcMode="linear"/></circle><circle class="pd g" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M192 60 H228" keyPoints="0;0;1;1" keyTimes="0;0.32;0.5;1" calcMode="linear"/></circle><circle class="pd b" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M86 93 C104 93 104 68 122 68" keyPoints="0;0;1;1" keyTimes="0;0.55;0.8;1" calcMode="linear"/></circle><text class="pl r" x="157" y="100">401 refused</text></svg>
+      <h3>A gateway at the door</h3>
+      <p>Sign-in, limits and the version check happen before the agent runs. The agent is told who is calling and never sees the credential.</p>
+      <code>src/server/http.ts · lessons 8, 13</code>
+    </article>
+    <article class="pat">
+      <div class="top"><span>Pattern 3</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="A question passes from the specialist back to the coordinator and then back to the client"><path class="pw " d="M224 60 H192"/><path class="pw " d="M108 60 H76"/><g class="pn "><rect x="6" y="45" width="70" height="30" rx="6"/><text x="41" y="63.5">your app</text></g><g class="pn hot"><rect x="108" y="45" width="84" height="30" rx="6"/><text x="150" y="63.5">coordinator</text></g><g class="pn hot"><rect x="224" y="45" width="70" height="30" rx="6"/><text x="259" y="63.5">specialist</text></g><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M224 60 H192" keyPoints="0;0;1;1" keyTimes="0;0.1;0.35;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M108 60 H76" keyPoints="0;0;1;1" keyTimes="0;0.45;0.7;1" calcMode="linear"/></circle><text class="pl w" x="259" y="92">INPUT_REQUIRED</text><text class="pl w" x="150" y="92">INPUT_REQUIRED</text></svg>
+      <h3>Questions travel back up</h3>
+      <p>When a specialist pauses to ask something, the coordinator pauses its own task in the same state and asks its caller. The spec describes this chain for credentials.</p>
+      <code>not built · exercise 7</code>
+    </article>
+    <article class="pat">
+      <div class="top"><span>Pattern 4</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="The agent posts a callback to the client's address, and the client then asks the agent for the task"><path class="pw " d="M86 25 C150 25 150 52 214 52"/><path class="pw " d="M214 68 C150 68 150 95 86 95"/><g class="pn "><rect x="6" y="10" width="80" height="30" rx="6"/><text x="46" y="28.5">your app</text></g><g class="pn "><rect x="6" y="80" width="80" height="30" rx="6"/><text x="46" y="98.5">your address</text></g><g class="pn hot"><rect x="214" y="45" width="80" height="30" rx="6"/><text x="254" y="63.5">agent</text></g><circle class="pd a" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M214 68 C150 68 150 95 86 95" keyPoints="0;0;1;1" keyTimes="0;0.1;0.4;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M86 25 C150 25 150 52 214 52" keyPoints="0;0;1;1" keyTimes="0;0.5;0.8;1" calcMode="linear"/></circle><text class="pl " x="150" y="17">GetTask</text><text class="pl " x="150" y="112">callback</text></svg>
+      <h3>A callback, with a poll to fall back on</h3>
+      <p>For long work the agent posts to your address. Deliveries can be lost or repeated, so confirm the task's state with GetTask before acting.</p>
+      <code>lessons 7 and 6, not combined</code>
+    </article>
+    <article class="pat avoid">
+      <div class="top"><span>Avoid 1</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="Two agents inside one program talk over HTTP, marked as a mistake"><rect class="pw" x="6" y="8" width="288" height="104" rx="8" stroke-dasharray="5 4"/><text class="pl " x="44" y="24">one program</text><path class="pw " d="M110 63 H190"/><g class="pn "><rect x="30" y="48" width="80" height="30" rx="6"/><text x="70" y="66.5">agent A</text></g><g class="pn "><rect x="190" y="48" width="80" height="30" rx="6"/><text x="230" y="66.5">agent B</text></g><text class="pl " x="150" y="52">HTTP</text><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M110 63 H190" keyPoints="0;0;1;1" keyTimes="0;0.1;0.6;1" calcMode="linear"/></circle><path class="px" d="M142 74 L158 90 M158 74 L142 90"/></svg>
+      <h3>A2A inside one program</h3>
+      <p>Both agents live in the same program. A function call does the job with no network, no sign-in and nothing extra to run.</p>
+      <code>this lab does it on purpose, for teaching</code>
+    </article>
+    <article class="pat avoid">
+      <div class="top"><span>Avoid 2</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="A request passes along a chain of four agents and fails at the third"><path class="pw " d="M50 60 H63"/><path class="pw " d="M109 60 H122"/><path class="pw " d="M168 60 H181"/><path class="pw " d="M227 60 H240"/><g class="pn "><rect x="4" y="45" width="46" height="30" rx="6"/><text x="27" y="63.5">app</text></g><g class="pn "><rect x="63" y="45" width="46" height="30" rx="6"/><text x="86" y="63.5">1</text></g><g class="pn "><rect x="122" y="45" width="46" height="30" rx="6"/><text x="145" y="63.5">2</text></g><g class="pn badn"><rect x="181" y="45" width="46" height="30" rx="6"/><text x="204" y="63.5">3</text></g><g class="pn "><rect x="240" y="45" width="46" height="30" rx="6"/><text x="263" y="63.5">4</text></g><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M50 60 H181" keyPoints="0;0;1;1" keyTimes="0;0.05;0.7;1" calcMode="linear"/></circle><path class="px" d="M197 19 L211 33 M211 19 L197 33"/><text class="pl r" x="204" y="96">failed</text><text class="pl " x="86" y="96">+4s</text><text class="pl " x="145" y="96">+8s</text></svg>
+      <h3>The long chain</h3>
+      <p>Every hop adds delay, cost and a place to fail, and one failure fails everything behind it. Keep chains short, with one time limit for the whole request.</p>
+      <code>longest chain here: two hops</code>
+    </article>
+    <article class="pat avoid">
+      <div class="top"><span>Avoid 3</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="A connection between client and agent held open for hours breaks"><path class="pw badw" d="M86 60 H214"/><g class="pn "><rect x="6" y="45" width="80" height="30" rx="6"/><text x="46" y="63.5">your app</text></g><g class="pn hot"><rect x="214" y="45" width="80" height="30" rx="6"/><text x="254" y="63.5">agent</text></g><text class="pl r" x="150" y="48">open: 3h…</text><path class="px" d="M142 72 L158 88 M158 72 L142 88"/></svg>
+      <h3>Holding the line for hours</h3>
+      <p>Streaming suits minutes. A connection held open for hours drops part-way and leaves you guessing. Use returnImmediately, then a callback or GetTask.</p>
+      <code>lessons 4 and 6</code>
+    </article>
+    <article class="pat avoid">
+      <div class="top"><span>Avoid 4</span></div>
+      <svg viewBox="0 0 300 120" role="img" aria-label="A hostile reply passes from another agent through your agent into your model"><path class="pw " d="M214 60 H192"/><path class="pw " d="M108 60 H76"/><g class="pn badn"><rect x="6" y="45" width="70" height="30" rx="6"/><text x="41" y="63.5">your model</text></g><g class="pn "><rect x="108" y="45" width="84" height="30" rx="6"/><text x="150" y="63.5">your agent</text></g><g class="pn "><rect x="214" y="45" width="80" height="30" rx="6"/><text x="254" y="63.5">another agent</text></g><circle class="pd b" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M214 60 H192" keyPoints="0;0;1;1" keyTimes="0;0.1;0.35;1" calcMode="linear"/></circle><circle class="pd b" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M108 60 H76" keyPoints="0;0;1;1" keyTimes="0;0.45;0.7;1" calcMode="linear"/></circle><text class="pl r" x="150" y="100">“ignore your rules…”</text></svg>
+      <h3>Obeying what comes back</h3>
+      <p>A reply from another agent goes into your model as if it were instructions. Whoever controls that agent now steers yours. Treat every reply as data.</p>
+      <code>concierge, naive mode · lesson 13</code>
+    </article>
   </div>
 </section>
 
