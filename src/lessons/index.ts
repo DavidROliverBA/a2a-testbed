@@ -12,8 +12,9 @@ import { lesson as l10 } from "./l10-errors.ts";
 import { lesson as l11 } from "./l11-parts.ts";
 import { lesson as l12 } from "./l12-orchestration.ts";
 import { lesson as l13 } from "./l13-security.ts";
+import { lesson as l14 } from "./l14-patterns.ts";
 
-const lessons = [l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13];
+const lessons = [l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14];
 const arg = process.argv[2];
 
 if (!arg) {

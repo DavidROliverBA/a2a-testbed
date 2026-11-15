@@ -4,8 +4,8 @@ A hands-on lab for the **Agent2Agent (A2A) protocol v1.0**. Zero runtime depende
 
 - **9 agents** that each demonstrate a different part of the protocol, one of them deliberately hostile
 - **A client** that discovers agents from their Agent Cards and speaks both JSON-RPC and HTTP+JSON
-- **13 narrated lessons** that print the actual HTTP traffic
-- **70 tests**, most run against both bindings, as executable documentation
+- **14 narrated lessons** that print the actual HTTP traffic
+- **74 tests**, most run against both bindings, as executable documentation
 
 ![One request passes from your app to the orchestrator agent, which calls the echo agent and the reporter agent and streams the result back](docs/images/a2a-01-call-graph.gif)
 
@@ -13,7 +13,7 @@ A hands-on lab for the **Agent2Agent (A2A) protocol v1.0**. Zero runtime depende
 bun install
 bun run lesson          # list lessons
 bun run lesson 4        # run one (boots the testbed in-process if none is running)
-bun run lessons         # run all 13
+bun run lessons         # run all 14
 A2A_WIRE=0 bun run lessons   # hide the raw HTTP, keep the narration
 bun test                # conformance suite
 bun run serve           # standalone server on :4747 (curl it, point other clients at it)
@@ -75,7 +75,7 @@ SendMessage returns `{message}` **or** `{task}`. Quick answers (echo) → Messag
 | `slowpoke` | Cancellation (real `AbortSignal`), resubscribe, polling | 6 |
 | `vault` | Bearer auth for two identities (`testbed-token` = alice, `bob-token` = bob), **extended card**, **AUTH_REQUIRED** with a header credential, task ownership | 8, 13 |
 | `inspector` | All four Part types, `*/*` input, **REJECTED** (`forbidden`) | 11 |
-| `orchestrator` | **Agent-to-agent**: discovers, calls, streams from other agents | 12 |
+| `orchestrator` | **Agent-to-agent**: discovers, calls, streams from other agents; relays a specialist's question to its caller | 12, 14 |
 | `trickster` | A **hostile** agent: harmless card, reply carries instructions aimed at the caller | 13 |
 | `concierge` | Calls `trickster`; shows careless and careful handling of an untrusted reply | 13 |
 
@@ -101,8 +101,8 @@ Every request passes through the same three layers. The checks happen in the fir
 |---|---|---|
 | **Coordinator with specialists** | One agent takes the request and hands parts to agents that each do one thing. The caller sees one agent and one task. | `orchestrator`, lesson 12 |
 | **Gateway at the door** | Sign-in, limits and the version check happen before the agent runs. The agent gets an identity, never a credential. | `src/server/http.ts`, lessons 8 and 13 (no rate limiting) |
-| **Questions travel back up** | A coordinator whose specialist pauses with a question pauses its own task in the same state and asks its caller. The spec describes this chain for `AUTH_REQUIRED` (section 7.6). | Not built. `orchestrator` only calls agents that never pause. See exercise 7. |
-| **Callback, with a poll to fall back on** | Register a callback for long work, and confirm with `GetTask` before acting, because deliveries can be lost or repeated. | Callbacks in lesson 7, polling in lesson 6. No lesson combines them. |
+| **Questions travel back up** | A coordinator whose specialist pauses with a question pauses its own task in the same state and asks its caller. The spec describes this chain for `AUTH_REQUIRED` (section 7.6). | `orchestrator` relaying `booking`'s questions, lesson 14. Only `INPUT_REQUIRED` is shown; cancelling the paused task does not cancel the hidden one. |
+| **Callback, with a poll to fall back on** | Register a callback for long work, and confirm with `GetTask` before acting, because deliveries can be lost or repeated. | Lesson 14: a callback confirmed with `GetTask`, then a lost callback recovered by polling. |
 
 ![Four things to avoid in turn: A2A inside one program, a long chain of agents, holding a connection open for hours, and obeying a reply from another agent](docs/images/a2a-09-anti-patterns.gif)
 
@@ -131,7 +131,7 @@ src/agents/*.ts            write an agent = write execute(ctx) and call ctx.bus
 src/server/callbacks.ts    which addresses the server will send callbacks to
 src/client/webhook.ts      a callback receiver that verifies what it is sent
 src/client/untrusted.ts    quarantine(), validateShape(): handling another agent's reply
-src/lessons/*.ts           the 13 lessons
+src/lessons/*.ts           the 14 lessons
 test/conformance.test.ts   the guarantees, as tests
 ```
 
@@ -185,7 +185,7 @@ curl -s localhost:4747/vault/rest/extendedAgentCard -H 'Authorization: Bearer te
 4. Send a message with `taskId` to a task that's still `WORKING`. This lab refuses it; the spec lets an agent accept it. Change the runtime to accept it and decide what the agent should do with the extra message.
 5. Implement `tenant` routing (`/{tenant}/message:send`) in `src/server/http.ts`.
 6. Point the client at someone else's real A2A agent: `A2AClient.discover("https://…")` works against any v1.0 agent.
-7. Make `orchestrator` call `booking`. When `booking` answers `INPUT_REQUIRED`, pause the orchestrator's own task in the same state, pass the question to the caller and send the answer back down.
+7. In lesson 14 the orchestrator relays `booking`'s questions. Make cancelling the orchestrator's paused task cancel the hidden `booking` task too.
 
 ## Fidelity notes (what's real, what's simplified)
 

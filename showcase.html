@@ -176,7 +176,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
 <section class="hero">
   <div class="eyebrow">Agent2Agent protocol v1.0 · hands-on lab</div>
   <h1>A2A <span>Testbed</span></h1>
-  <p class="lede">Nine agents, one client and thirteen narrated lessons that put every message of the protocol on screen. Built in TypeScript with no runtime dependencies, so nothing hides the wire.</p>
+  <p class="lede">Nine agents, one client and fourteen narrated lessons that put every message of the protocol on screen. Built in TypeScript with no runtime dependencies, so nothing hides the wire.</p>
 
   <div class="stage">
     <figure>
@@ -217,8 +217,8 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
 
 <section class="stats" aria-label="Testbed at a glance">
   <div class="stat"><b data-count="9">9</b><span>agents</span></div>
-  <div class="stat"><b data-count="13">13</b><span>lessons</span></div>
-  <div class="stat"><b data-count="70">70</b><span>tests</span></div>
+  <div class="stat"><b data-count="14">14</b><span>lessons</span></div>
+  <div class="stat"><b data-count="74">74</b><span>tests</span></div>
   <div class="stat"><b data-count="11">11</b><span>operations, both bindings</span></div>
   <div class="stat"><b data-count="14">14</b><span>error codes defined</span></div>
   <div class="stat"><b data-count="0">0</b><span>runtime dependencies</span></div>
@@ -339,14 +339,14 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
       <svg viewBox="0 0 300 120" role="img" aria-label="A question passes from the specialist back to the coordinator and then back to the client"><path class="pw " d="M224 60 H192"/><path class="pw " d="M108 60 H76"/><g class="pn "><rect x="6" y="45" width="70" height="30" rx="6"/><text x="41" y="63.5">your app</text></g><g class="pn hot"><rect x="108" y="45" width="84" height="30" rx="6"/><text x="150" y="63.5">coordinator</text></g><g class="pn hot"><rect x="224" y="45" width="70" height="30" rx="6"/><text x="259" y="63.5">specialist</text></g><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M224 60 H192" keyPoints="0;0;1;1" keyTimes="0;0.1;0.35;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M108 60 H76" keyPoints="0;0;1;1" keyTimes="0;0.45;0.7;1" calcMode="linear"/></circle><text class="pl w" x="259" y="92">INPUT_REQUIRED</text><text class="pl w" x="150" y="92">INPUT_REQUIRED</text></svg>
       <h3>Questions travel back up</h3>
       <p>When a specialist pauses to ask something, the coordinator pauses its own task in the same state and asks its caller. The spec describes this chain for credentials.</p>
-      <code>not built · exercise 7</code>
+      <code>orchestrator, booking · lesson 14</code>
     </article>
     <article class="pat">
       <div class="top"><span>Pattern 4</span></div>
       <svg viewBox="0 0 300 120" role="img" aria-label="The agent posts a callback to the client's address, and the client then asks the agent for the task"><path class="pw " d="M86 25 C150 25 150 52 214 52"/><path class="pw " d="M214 68 C150 68 150 95 86 95"/><g class="pn "><rect x="6" y="10" width="80" height="30" rx="6"/><text x="46" y="28.5">your app</text></g><g class="pn "><rect x="6" y="80" width="80" height="30" rx="6"/><text x="46" y="98.5">your address</text></g><g class="pn hot"><rect x="214" y="45" width="80" height="30" rx="6"/><text x="254" y="63.5">agent</text></g><circle class="pd a" r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M214 68 C150 68 150 95 86 95" keyPoints="0;0;1;1" keyTimes="0;0.1;0.4;1" calcMode="linear"/></circle><circle class="pd " r="4"><animateMotion dur="4.5s" repeatCount="indefinite" path="M86 25 C150 25 150 52 214 52" keyPoints="0;0;1;1" keyTimes="0;0.5;0.8;1" calcMode="linear"/></circle><text class="pl " x="150" y="17">GetTask</text><text class="pl " x="150" y="112">callback</text></svg>
       <h3>A callback, with a poll to fall back on</h3>
       <p>For long work the agent posts to your address. Deliveries can be lost or repeated, so confirm the task's state with GetTask before acting.</p>
-      <code>lessons 7 and 6, not combined</code>
+      <code>reporter · lesson 14</code>
     </article>
     <article class="pat avoid">
       <div class="top"><span>Avoid 1</span></div>
@@ -382,7 +382,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
 <section class="exhibit">
   <header>
     <div class="eyebrow">Curriculum</div>
-    <h2>Thirteen lessons, each one runnable</h2>
+    <h2>Fourteen lessons, each one runnable</h2>
     <p>Every lesson prints the raw HTTP exchange next to a plain explanation. Run one, read the output, then break it.</p>
   </header>
   <div class="lessons" id="lessons"></div>
@@ -396,7 +396,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
   <div class="qs">
     <div class="cmd"><code>bun install &amp;&amp; bun run lesson 12</code><button class="copy" data-copy="bun install && bun run lesson 12">Copy</button></div>
     <div class="cmd"><code>bun run serve</code><span>agents on :4747, curl-friendly</span><button class="copy" data-copy="bun run serve">Copy</button></div>
-    <div class="cmd"><code>bun test</code><span>70 tests, most across both bindings</span><button class="copy" data-copy="bun test">Copy</button></div>
+    <div class="cmd"><code>bun test</code><span>74 tests, most across both bindings</span><button class="copy" data-copy="bun test">Copy</button></div>
   </div>
   <footer>Not implemented on purpose, and good next projects: the gRPC binding, signed Agent Cards, extensions, OAuth and tenant routing. For production use the official SDK; this lab shows what it does for you.</footer>
 </section>
@@ -580,7 +580,8 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
     ["Errors", "echo", "The common A2A error codes, JSON-RPC failures by hand, and version rejection."],
     ["Parts", "inspector", "Text, data, raw and url parts. Plus the REJECTED and FAILED endings."],
     ["Orchestration", "orchestrator", "One agent discovers and calls two others, sharing a contextId."],
-    ["Security", "vault, concierge", "Sign-in at the door, task ownership, callback checks, and a hostile agent's reply handled as data."]
+    ["Security", "vault, concierge", "Sign-in at the door, task ownership, callback checks, and a hostile agent's reply handled as data."],
+    ["Patterns", "orchestrator, reporter", "A specialist's question relayed up the chain, and a callback backed by a poll."]
   ];
   var lw = $("lessons");
   L.forEach(function (l, i) {

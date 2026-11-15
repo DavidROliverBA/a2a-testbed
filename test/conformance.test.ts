@@ -9,7 +9,7 @@ import { looksLikeInjection, quarantine, validateShape } from "../src/client/unt
 import { startWebhookReceiver } from "../src/client/webhook.ts";
 import { checkCallbackUrl, isInternalHost } from "../src/server/callbacks.ts";
 import { A2AClient, foldStream, type Binding } from "../src/client/client.ts";
-import { textOf, type StreamResponse } from "../src/protocol.ts";
+import { isTerminal, textOf, type StreamResponse } from "../src/protocol.ts";
 import { startTestbed } from "../src/testbed.ts";
 import type { Testbed } from "../src/server/http.ts";
 
@@ -289,6 +289,43 @@ describe.each(["JSONRPC", "HTTP+JSON"] as Binding[])("binding: %s", (binding) =>
     expect(downstream.tasks[0]!.id).toBe(trace.trace[2].remoteTaskId);
     const hist = await rep.getTask(downstream.tasks[0]!.id);
     expect(hist.history![0]!.referenceTaskIds).toEqual([task!.id]);
+  });
+
+  test("pattern: a specialist's question pauses the orchestrator's own task and travels up", async () => {
+    const o = await c("orchestrator");
+    let t = (await o.sendMessage("Book a trip")).task!;
+    expect(t.status.state).toBe("TASK_STATE_INPUT_REQUIRED");
+    expect(textOf(t.status.message)).toContain("Which city");
+    const id = t.id;
+    t = (await o.sendMessage(o.userMessage("Lisbon", { taskId: id, contextId: t.contextId }))).task!;
+    expect(t.id).toBe(id);
+    expect(t.status.state).toBe("TASK_STATE_INPUT_REQUIRED");
+    expect(textOf(t.status.message)).toContain("What dates");
+    t = (await o.sendMessage(o.userMessage("2026-12-01 to 2026-12-05", { taskId: id, contextId: t.contextId }))).task!;
+    expect(t.status.state).toBe("TASK_STATE_COMPLETED");
+    const conf = t.artifacts!.find((x) => x.artifactId === "booking:confirmation")!;
+    expect(conf.parts[0]!.data).toMatchObject({ city: "Lisbon", dates: "2026-12-01 to 2026-12-05" });
+    expect(conf.metadata).toMatchObject({ untrusted: true, source: "Booking Agent" });
+    // one hidden task on the booking agent, driven through the same three turns
+    const trace = t.artifacts!.find((x) => x.artifactId === "trace")!.parts[0]!.data as any;
+    expect(trace.turns).toBe(3);
+    const b = await c("booking");
+    const down = await b.getTask(trace.bookingTaskId);
+    expect(down.status.state).toBe("TASK_STATE_COMPLETED");
+    expect(down.history![0]!.referenceTaskIds).toEqual([id]);
+  });
+
+  test("pattern: a lost callback costs a delay, not the result (poll with GetTask)", async () => {
+    const r = await c("reporter");
+    const hook = startWebhookReceiver();
+    const cfg = { url: hook.url, token: hook.token };
+    hook.stop(); // every delivery will fail
+    const { task } = await r.sendMessage(r.userMessage("lost callbacks", { metadata: fast }), { returnImmediately: true, taskPushNotificationConfig: cfg });
+    let t = task!;
+    for (let i = 0; i < 100 && !isTerminal(t.status.state); i++) { await wait(20); t = await r.getTask(t.id); }
+    expect(hook.accepted).toHaveLength(0);
+    expect(t.status.state).toBe("TASK_STATE_COMPLETED");
+    expect(t.artifacts!.map((x) => x.artifactId)).toEqual(["report", "sources"]);
   });
 });
 
