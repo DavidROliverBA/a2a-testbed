@@ -1,0 +1,12 @@
+a2a-testbed
+Copyright (c) 2026 David Oliver. Licensed under the MIT License (see LICENSE).
+
+Third-party material
+--------------------
+a2a.proto is copied unmodified from the A2A project
+(https://github.com/a2aproject/A2A, tag v1.0.0, specification/a2a.proto).
+It is copyright the A2A project authors and licensed under the Apache License,
+Version 2.0: https://www.apache.org/licenses/LICENSE-2.0
+
+This project is an independent learning lab. It is not affiliated with or
+endorsed by the A2A project or the Linux Foundation.

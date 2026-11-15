@@ -1,0 +1,513 @@
+<title>A2A Testbed</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: a wire-level instrument panel. One animated hero that shows the mechanism, then four narrow exhibits (state machine, stream, bindings, lessons). */
+:root {
+  --bg: #edf1f5; --panel: #ffffff; --panel2: #e3e9ef; --fg: #13202c; --muted: #52606e; --line: #c5d0db;
+  --accent: #0a7c86; --pulse: #b86e00; --good: #1b8a4b; --bad: #c23b2e;
+  --display: "Space Grotesk", system-ui, sans-serif; --body: "Inter", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1319; --panel: #131c25; --panel2: #1a2530; --fg: #e6edf3; --muted: #93a3b3; --line: #2a3947;
+    --accent: #4fd1c5; --pulse: #f5b83d; --good: #4cd38a; --bad: #ff7a6b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1319; --panel: #131c25; --panel2: #1a2530; --fg: #e6edf3; --muted: #93a3b3; --line: #2a3947;
+  --accent: #4fd1c5; --pulse: #f5b83d; --good: #4cd38a; --bad: #ff7a6b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); line-height: 1.55; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1060px; margin: 0 auto; display: flex; flex-direction: column; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+code, .mono { font-family: var(--mono); }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+p { margin: 0; }
+
+/* hero */
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.hero h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1; font-weight: 700; }
+.hero h1 span { color: var(--accent); }
+.lede { max-width: 62ch; color: var(--muted); font-size: 18px; }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 14px 10px; }
+.stage figure, .exhibit figure { margin: 0; }
+.stage svg, .exhibit svg { display: block; width: 100%; height: auto; }
+.capline { display: flex; gap: 12px; align-items: baseline; padding: 10px 6px 4px; min-height: 52px; }
+.capline .step { font-family: var(--mono); font-size: 12px; color: var(--pulse); white-space: nowrap; }
+.capline p { font-size: 15px; }
+
+/* svg theming */
+.node rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; transition: stroke .25s, fill .25s; }
+.node.active rect { stroke: var(--accent); stroke-width: 2.5; }
+.node text { fill: var(--fg); font-family: var(--display); font-weight: 700; font-size: 14px; }
+.node .sub { fill: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 10.5px; }
+.node.dim rect { fill: var(--panel2); stroke: var(--line); }
+.node.dim text { fill: var(--muted); font-size: 12.5px; }
+.boundary { fill: none; stroke: var(--line); stroke-dasharray: 5 5; stroke-width: 1.5; }
+.blabel { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+.wire { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.wirelabel { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+.req { fill: var(--pulse); }
+.res { fill: var(--accent); }
+.chunk { fill: var(--accent); opacity: .85; }
+.statebadge { font-family: var(--mono); font-size: 11px; fill: var(--pulse); }
+@keyframes breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.node.dim { animation: breathe 4.8s ease-in-out infinite; }
+.node.dim:nth-of-type(2) { animation-delay: 1.2s; } .node.dim:nth-of-type(3) { animation-delay: 2.4s; } .node.dim:nth-of-type(4) { animation-delay: 3.6s; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0; border-block: 1px solid var(--line); }
+.stat { padding: 18px 16px; display: flex; flex-direction: column; gap: 2px; border-right: 1px solid var(--line); }
+.stat:last-child { border-right: 0; }
+.stat b { font-family: var(--display); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+
+/* exhibits */
+.exhibit { display: flex; flex-direction: column; gap: 20px; }
+.exhibit > header { display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+.exhibit h2 { font-size: clamp(26px, 4vw, 36px); }
+.exhibit header p { color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 0; }
+figcaption { font-size: 13px; color: var(--muted); padding-top: 8px; }
+
+/* state machine */
+.sm-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.sm-tabs button { font: 500 13px var(--body); color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.sm-tabs button small { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.sm-tabs button[aria-pressed="true"] { border-color: var(--accent); background: var(--panel); box-shadow: inset 0 0 0 1px var(--accent); }
+.sm-tabs button:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seq { display: flex; flex-wrap: wrap; gap: 6px; font-family: var(--mono); font-size: 12px; align-items: center; min-height: 28px; }
+.seq span { padding: 2px 8px; border-radius: 6px; background: var(--panel2); color: var(--muted); transition: background .2s, color .2s; }
+.seq span.on { background: var(--accent); color: var(--bg); }
+.seq i { color: var(--muted); font-style: normal; }
+.snode rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; transition: fill .25s, stroke .25s; }
+.snode text { fill: var(--muted); font-family: var(--mono); font-size: 11.5px; transition: fill .25s; }
+.snode.int rect { stroke-dasharray: 4 3; }
+.snode.good rect, .snode.bad rect, .snode.mute rect { stroke-width: 2.5; }
+.snode.visited rect { fill: var(--panel2); }
+.snode.visited text, .snode.current text { fill: var(--fg); }
+.snode.current rect { stroke: var(--accent); stroke-width: 3; }
+.snode.current.good rect { stroke: var(--good); } .snode.current.bad rect { stroke: var(--bad); }
+.sedge { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.sedge.used { stroke: var(--accent); }
+.arrowhead { fill: var(--muted); }
+.token { fill: var(--pulse); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); }
+
+/* stream */
+.stream { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .stream { grid-template-columns: minmax(0, 1fr); } }
+.log { font-family: var(--mono); font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; overflow-x: auto; }
+.ev { display: flex; gap: 12px; white-space: nowrap; transition: opacity .3s, transform .3s; }
+.ev b { font-weight: 500; width: 112px; flex: none; color: var(--accent); }
+.ev b.art { color: var(--pulse); }
+.ev span { color: var(--muted); }
+.ev em { font-style: normal; color: var(--fg); }
+.pending { opacity: 0; transform: translateY(4px); }
+.arthead { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 12px; margin-bottom: 10px; }
+.pill { font-family: var(--mono); font-size: 11px; padding: 2px 10px; border-radius: 999px; background: var(--panel2); color: var(--pulse); }
+.pill.done { color: var(--good); }
+.artifact { display: flex; flex-direction: column; gap: 8px; }
+.chk { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 10px; font-size: 13px; transition: opacity .35s, transform .35s; }
+.chk small { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.chk.data { border-left-color: var(--pulse); }
+
+/* bindings */
+.bind { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .bind { grid-template-columns: minmax(0, 1fr); } }
+pre { margin: 0; font: 12.5px/1.6 var(--mono); overflow-x: auto; }
+pre .lbl { color: var(--muted); }
+pre .same { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 3px; }
+.bind h3 { font-size: 15px; margin-bottom: 10px; }
+.optable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.optable th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); }
+.optable td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
+.tablewrap { overflow-x: auto; }
+
+/* lessons */
+.lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.lesson { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; transition: border-color .2s, transform .2s; }
+.lesson:hover { border-color: var(--accent); transform: translateY(-2px); }
+.lesson .top { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.lesson .top b { color: var(--pulse); font-weight: 500; }
+.lesson h3 { font-size: 17px; }
+.lesson p { font-size: 13px; color: var(--muted); flex: 1; }
+.lesson code { font-size: 11.5px; color: var(--accent); }
+
+/* quickstart */
+.qs { display: flex; flex-direction: column; gap: 12px; }
+.cmd { display: flex; gap: 12px; align-items: center; justify-content: space-between; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 13px; overflow-x: auto; }
+.cmd span { color: var(--muted); white-space: nowrap; }
+.copy { font: 500 12px var(--body); border: 1px solid var(--line); background: var(--panel2); color: var(--fg); border-radius: 8px; padding: 4px 10px; cursor: pointer; flex: none; }
+footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .node.dim { animation: none; opacity: .85; }
+  .lesson, .ev, .chk { transition: none; }
+}
+</style>
+
+<div class="wrap">
+
+<section class="hero">
+  <div class="eyebrow">Agent2Agent protocol v1.0 · hands-on lab</div>
+  <h1>A2A <span>Testbed</span></h1>
+  <p class="lede">Nine agents, one client and thirteen narrated lessons that put every message of the protocol on screen. Built in TypeScript with no runtime dependencies, so nothing hides the wire.</p>
+
+  <div class="stage">
+    <figure>
+      <svg id="hero" viewBox="0 0 960 440" role="img" aria-label="Animated diagram: a client sends SendMessage to an orchestrator agent, which calls the echo agent for a single Message and the reporter agent for a stream of artifact chunks, then returns the finished task to the client.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><polygon class="arrowhead" points="0,0 10,5 0,10"/></marker>
+        </defs>
+        <rect class="boundary" x="250" y="18" width="696" height="404" rx="14"/>
+        <text class="blabel" x="268" y="40">testbed · 127.0.0.1:4747 · each agent serves JSON-RPC and HTTP+JSON</text>
+
+        <path id="p-c-o" class="wire" d="M160 190 L290 190" marker-end="url(#ah)"/>
+        <path id="p-o-c" class="wire" d="M290 214 L160 214" marker-end="url(#ah)"/>
+        <path id="p-o-e" class="wire" d="M440 178 C540 178 540 68 640 68" marker-end="url(#ah)"/>
+        <path id="p-e-o" class="wire" d="M640 86 C560 86 560 192 440 192" marker-end="url(#ah)"/>
+        <path id="p-o-r" class="wire" d="M440 208 L640 208" marker-end="url(#ah)"/>
+        <path id="p-r-o" class="wire" d="M640 226 L440 226" marker-end="url(#ah)"/>
+        <text class="wirelabel" x="225" y="178" text-anchor="middle">SendMessage</text>
+        <text class="wirelabel" x="545" y="262" text-anchor="middle">SendStreamingMessage · SSE</text>
+        <text class="wirelabel" x="598" y="128" text-anchor="end">SendMessage → Message</text>
+
+        <g class="node" id="n-client"><rect x="30" y="170" width="130" height="64" rx="10"/><text x="95" y="198" text-anchor="middle">Your client</text><text class="sub" x="95" y="216" text-anchor="middle">A2AClient</text></g>
+        <g class="node" id="n-orch"><rect x="290" y="170" width="150" height="64" rx="10"/><text x="365" y="198" text-anchor="middle">orchestrator</text><text class="sub" x="365" y="216" text-anchor="middle">server + client</text></g>
+        <text class="statebadge" id="orch-state" x="365" y="254" text-anchor="middle">task: idle</text>
+        <g class="node" id="n-echo"><rect x="640" y="44" width="150" height="56" rx="10"/><text x="715" y="68" text-anchor="middle">echo</text><text class="sub" x="715" y="85" text-anchor="middle">Message only</text></g>
+        <g class="node" id="n-rep"><rect x="640" y="180" width="150" height="64" rx="10"/><text x="715" y="206" text-anchor="middle">reporter</text><text class="sub" x="715" y="224" text-anchor="middle">Task · streams chunks</text></g>
+
+        <g class="node dim"><rect x="290" y="330" width="140" height="62" rx="10"/><text x="360" y="357" text-anchor="middle">booking</text><text class="sub" x="360" y="376" text-anchor="middle">INPUT_REQUIRED</text></g>
+        <g class="node dim"><rect x="445" y="330" width="140" height="62" rx="10"/><text x="515" y="357" text-anchor="middle">slowpoke</text><text class="sub" x="515" y="376" text-anchor="middle">cancel + resubscribe</text></g>
+        <g class="node dim"><rect x="600" y="330" width="140" height="62" rx="10"/><text x="670" y="357" text-anchor="middle">vault</text><text class="sub" x="670" y="376" text-anchor="middle">bearer + AUTH_REQUIRED</text></g>
+        <g class="node dim"><rect x="755" y="330" width="170" height="62" rx="10"/><text x="840" y="357" text-anchor="middle">inspector</text><text class="sub" x="840" y="376" text-anchor="middle">text · data · raw · url</text></g>
+
+        <g id="packets"></g>
+      </svg>
+      <div class="capline"><span class="step" id="cap-step">live</span><p id="cap">Your client sends one SendMessage to the orchestrator, which fans the work out to other agents over the same public protocol.</p></div>
+    </figure>
+  </div>
+</section>
+
+<section class="stats" aria-label="Testbed at a glance">
+  <div class="stat"><b data-count="9">9</b><span>agents</span></div>
+  <div class="stat"><b data-count="13">13</b><span>lessons</span></div>
+  <div class="stat"><b data-count="70">70</b><span>tests</span></div>
+  <div class="stat"><b data-count="11">11</b><span>operations, both bindings</span></div>
+  <div class="stat"><b data-count="14">14</b><span>error codes exercised</span></div>
+  <div class="stat"><b data-count="0">0</b><span>runtime dependencies</span></div>
+</section>
+
+<section class="exhibit">
+  <header>
+    <div class="eyebrow">Task lifecycle</div>
+    <h2>Every state a task can be in</h2>
+    <p>Pick a scenario. The token follows the real transitions each testbed agent produces: ordinary work, a question back to you, a second credential, a cancel, a crash and a refusal.</p>
+  </header>
+  <div class="sm-tabs" id="sm-tabs" role="group" aria-label="Scenario"></div>
+  <div class="panel">
+    <figure>
+      <svg id="sm" viewBox="0 0 720 290" role="img" aria-label="Task state machine. SUBMITTED moves to WORKING, INPUT_REQUIRED, AUTH_REQUIRED or REJECTED. WORKING moves to COMPLETED, FAILED or CANCELED, and can pause in INPUT_REQUIRED or AUTH_REQUIRED and return.">
+        <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><polygon class="arrowhead" points="0,0 10,5 0,10"/></marker></defs>
+        <g id="sm-edges"></g><g id="sm-nodes"></g><circle id="token" class="token" r="6" cx="-20" cy="-20"/>
+      </svg>
+      <figcaption>Dashed boxes are interrupted states: the task is alive and waits for the client to reply with the same taskId. Heavy borders are terminal: nothing can change a task after that.</figcaption>
+    </figure>
+  </div>
+  <div class="seq" id="sm-seq" aria-live="polite"></div>
+</section>
+
+<section class="exhibit">
+  <header>
+    <div class="eyebrow">Streaming</div>
+    <h2>Results arrive in pieces</h2>
+    <p>This is the actual event sequence the reporter agent sends for SendStreamingMessage. The first event is the task, then status updates and artifact chunks. A client rebuilds the report by appending each chunk.</p>
+  </header>
+  <div class="stream">
+    <div class="panel"><div class="log" id="log" aria-label="Server-sent events">
+      <div class="ev" data-s="SUBMITTED"><b>task</b><span>state</span><em>SUBMITTED</em></div>
+      <div class="ev" data-s="WORKING"><b>statusUpdate</b><span>WORKING</span><em>“Researching deep sea mining…”</em></div>
+      <div class="ev" data-s="WORKING"><b>statusUpdate</b><span>WORKING</span><em>“Writing section 1/3: Background”</em></div>
+      <div class="ev" data-s="WORKING" data-c="c1"><b class="art">artifactUpdate</b><span>report</span><em>append=false last=false</em></div>
+      <div class="ev" data-s="WORKING"><b>statusUpdate</b><span>WORKING</span><em>“Writing section 2/3: Current state”</em></div>
+      <div class="ev" data-s="WORKING" data-c="c2"><b class="art">artifactUpdate</b><span>report</span><em>append=true last=false</em></div>
+      <div class="ev" data-s="WORKING"><b>statusUpdate</b><span>WORKING</span><em>“Writing section 3/3: Outlook”</em></div>
+      <div class="ev" data-s="WORKING" data-c="c3"><b class="art">artifactUpdate</b><span>report</span><em>append=true last=true</em></div>
+      <div class="ev" data-s="WORKING" data-c="c4"><b class="art">artifactUpdate</b><span>sources</span><em>last=true</em></div>
+      <div class="ev" data-s="COMPLETED"><b>statusUpdate</b><span>COMPLETED</span><em>“Report ready”</em></div>
+    </div></div>
+    <div class="panel">
+      <div class="arthead"><span>artifact “report” + “sources”</span><span class="pill done" id="pill">COMPLETED</span></div>
+      <div class="artifact">
+        <div class="chk" id="c1"><small>report · chunk 1</small>## Background — Notes about deep sea mining (background).</div>
+        <div class="chk" id="c2"><small>report · chunk 2 (append)</small>## Current state — Notes about deep sea mining (current state).</div>
+        <div class="chk" id="c3"><small>report · chunk 3 (append, last)</small>## Outlook — Notes about deep sea mining (outlook).</div>
+        <div class="chk data" id="c4"><small>sources · data part</small>{ "sources": 2, "confidence": 0.42 }</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="exhibit">
+  <header>
+    <div class="eyebrow">Bindings</div>
+    <h2>One protocol, two ways to say it</h2>
+    <p>The same SendMessage, spoken as JSON-RPC and as plain HTTP+JSON. The message payload, highlighted, does not change. The testbed serves both for every agent, and the client picks one from the Agent Card.</p>
+  </header>
+  <div class="bind">
+    <div class="panel"><h3>JSON-RPC 2.0</h3><pre><span class="lbl">POST /reporter/rpc</span>
+{ "jsonrpc": "2.0", "id": 1,
+  "method": "SendMessage",
+  "params": {
+    <span class="same">"message": {
+      "messageId": "m1",
+      "role": "ROLE_USER",
+      "parts": [{ "text": "fusion power" }]
+    }</span>
+  } }</pre></div>
+    <div class="panel"><h3>HTTP+JSON</h3><pre><span class="lbl">POST /reporter/rest/message:send</span>
+{
+  <span class="same">"message": {
+    "messageId": "m1",
+    "role": "ROLE_USER",
+    "parts": [{ "text": "fusion power" }]
+  }</span>
+}</pre></div>
+  </div>
+  <div class="panel tablewrap">
+    <table class="optable">
+      <thead><tr><th>Operation</th><th>JSON-RPC method</th><th>HTTP+JSON route</th><th>Failure looks like</th></tr></thead>
+      <tbody>
+        <tr><td>Send a message</td><td>SendMessage</td><td>POST /message:send</td><td rowspan="4" style="font-family:var(--body);vertical-align:top">JSON-RPC: <span class="mono">{"error":{"code":-32001}}</span><br>REST: HTTP 404 with <span class="mono">application/problem+json</span></td></tr>
+        <tr><td>Stream the work</td><td>SendStreamingMessage</td><td>POST /message:stream</td></tr>
+        <tr><td>Check a task</td><td>GetTask</td><td>GET /tasks/{id}</td></tr>
+        <tr><td>Cancel a task</td><td>CancelTask</td><td>POST /tasks/{id}:cancel</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="exhibit">
+  <header>
+    <div class="eyebrow">Curriculum</div>
+    <h2>Thirteen lessons, each one runnable</h2>
+    <p>Every lesson prints the raw HTTP exchange next to a plain explanation. Run one, read the output, then break it.</p>
+  </header>
+  <div class="lessons" id="lessons"></div>
+</section>
+
+<section class="exhibit">
+  <header>
+    <div class="eyebrow">Run it</div>
+    <h2>From clone to first message in a minute</h2>
+  </header>
+  <div class="qs">
+    <div class="cmd"><code>bun install &amp;&amp; bun run lesson 12</code><button class="copy" data-copy="bun install && bun run lesson 12">Copy</button></div>
+    <div class="cmd"><code>bun run serve</code><span>agents on :4747, curl-friendly</span><button class="copy" data-copy="bun run serve">Copy</button></div>
+    <div class="cmd"><code>bun test</code><span>70 tests, most across both bindings</span><button class="copy" data-copy="bun test">Copy</button></div>
+  </div>
+  <footer>Not implemented on purpose, and good next projects: the gRPC binding, signed Agent Cards, extensions, OAuth and tenant routing. For production use the official SDK; this lab shows what it does for you.</footer>
+</section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (id) { return document.getElementById(id); };
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var ease = function (p) { return p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; };
+
+  /* ---------- stat count-up (final numbers already in the HTML) ---------- */
+  if (!reduce) {
+    document.querySelectorAll("[data-count]").forEach(function (el) {
+      var to = +el.dataset.count, t0 = performance.now(); el.textContent = "0";
+      (function tick(t) { var p = Math.min(1, (t - t0) / 1100); el.textContent = Math.round(to * ease(p)); if (p < 1) requestAnimationFrame(tick); })(t0);
+    });
+  }
+
+  /* ---------- hero: packets flying along the real call graph ---------- */
+  var layer = $("packets");
+  function fly(pathId, cls, o) {
+    o = o || {};
+    return new Promise(function (res) {
+      var path = $(pathId), len = path.getTotalLength(), dur = o.dur || 800, c = document.createElementNS(NS, "circle");
+      c.setAttribute("r", o.size || 5.5); c.setAttribute("class", cls); layer.appendChild(c);
+      var t0 = performance.now();
+      (function step(t) {
+        var p = Math.min(1, (t - t0) / dur), pt = path.getPointAtLength(ease(p) * len);
+        c.setAttribute("cx", pt.x); c.setAttribute("cy", pt.y);
+        if (p < 1) requestAnimationFrame(step); else { c.remove(); res(); }
+      })(t0);
+    });
+  }
+  function active(ids) { ["client", "orch", "echo", "rep"].forEach(function (k) { $("n-" + k).classList.toggle("active", ids.indexOf(k) >= 0); }); }
+  function cap(step, text) { $("cap-step").textContent = step; $("cap").textContent = text; }
+  function state(s) { $("orch-state").textContent = "task: " + s; }
+  function burst(path, n, gap) {
+    var a = []; for (var i = 0; i < n; i++) a.push(sleep(i * gap).then(function () { return fly(path, "chunk", { dur: 650, size: 3.8 }); }));
+    return Promise.all(a);
+  }
+  async function heroLoop() {
+    while (true) {
+      state("idle"); active([]); await sleep(500);
+      cap("1 / 4", "Your client sends one SendMessage. It only knows the orchestrator.");
+      active(["client", "orch"]); await fly("p-c-o", "req"); state("SUBMITTED"); await sleep(200); state("WORKING");
+      cap("2 / 4", "The orchestrator calls echo with SendMessage. Echo replies with a bare Message and never creates a task.");
+      active(["orch", "echo"]); await fly("p-o-e", "req", { dur: 900 }); await fly("p-e-o", "res", { dur: 900 });
+      cap("3 / 4", "Then it opens a stream to reporter. The report comes back as SSE artifactUpdate chunks.");
+      active(["orch", "rep"]); await fly("p-o-r", "req", { dur: 700 }); await burst("p-r-o", 4, 260);
+      cap("4 / 4", "Each chunk is mirrored to your client. The task ends COMPLETED, and every hop used the same public protocol.");
+      active(["client", "orch"]); await burst("p-o-c", 4, 200); state("COMPLETED");
+      await sleep(2600);
+    }
+  }
+  if (reduce) { state("COMPLETED"); active([]); cap("static", "Your client sends one SendMessage to the orchestrator, which delegates to echo (a bare Message) and reporter (a stream of artifact chunks), then returns a COMPLETED task."); }
+  else heroLoop();
+
+  /* ---------- state machine ---------- */
+  var HW = 78, HH = 17;
+  var N = {
+    S: { x: 100, y: 130, t: "SUBMITTED", k: "" }, W: { x: 340, y: 130, t: "WORKING", k: "" },
+    I: { x: 340, y: 38, t: "INPUT_REQUIRED", k: "int" }, A: { x: 340, y: 222, t: "AUTH_REQUIRED", k: "int" },
+    C: { x: 620, y: 40, t: "COMPLETED", k: "good" }, F: { x: 620, y: 130, t: "FAILED", k: "bad" },
+    X: { x: 620, y: 220, t: "CANCELED", k: "mute" }, R: { x: 100, y: 250, t: "REJECTED", k: "bad" }
+  };
+  var EDGES = ["SW", "SI", "SA", "SR", "WI", "IW", "WA", "AW", "WC", "WF", "WX"];
+  var SC = [
+    { name: "Plain work", agent: "reporter", seq: "SWC" },
+    { name: "Needs input", agent: "booking", seq: "SIIWC" },
+    { name: "Needs credential", agent: "vault", seq: "SAAWC" },
+    { name: "Canceled", agent: "slowpoke", seq: "SWX" },
+    { name: "Fails", agent: "reporter", seq: "SWF" },
+    { name: "Refused", agent: "inspector", seq: "SR" }
+  ];
+  function seg(a, b) {
+    var A = N[a], B = N[b], dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    var s = Math.min(HW / Math.abs(dx || 1e-9), HH / Math.abs(dy || 1e-9));
+    var off = EDGES.indexOf(b + a) >= 0 ? 8 : 0, px = -uy * off, py = ux * off, gap = 4;
+    return { x1: A.x + dx * s + ux * gap + px, y1: A.y + dy * s + uy * gap + py, x2: B.x - dx * s - ux * gap + px, y2: B.y - dy * s - uy * gap + py };
+  }
+  var smEdges = $("sm-edges"), smNodes = $("sm-nodes"), edgeEl = {}, nodeEl = {};
+  EDGES.forEach(function (e) {
+    var g = seg(e[0], e[1]), l = document.createElementNS(NS, "line");
+    l.setAttribute("class", "sedge"); l.setAttribute("marker-end", "url(#ah2)");
+    ["x1", "y1", "x2", "y2"].forEach(function (k) { l.setAttribute(k, g[k]); });
+    smEdges.appendChild(l); edgeEl[e] = l;
+  });
+  Object.keys(N).forEach(function (k) {
+    var n = N[k], g = document.createElementNS(NS, "g"); g.setAttribute("class", "snode " + n.k);
+    g.innerHTML = '<rect x="' + (n.x - HW) + '" y="' + (n.y - HH) + '" width="' + HW * 2 + '" height="' + HH * 2 + '" rx="8"></rect><text x="' + n.x + '" y="' + (n.y + 4) + '" text-anchor="middle">' + n.t + "</text>";
+    smNodes.appendChild(g); nodeEl[k] = g;
+  });
+  var token = $("token"), seqBox = $("sm-seq"), tabs = $("sm-tabs"), runId = 0, picked = -1, cur = 0;
+  function clearSM() {
+    Object.keys(nodeEl).forEach(function (k) { nodeEl[k].classList.remove("visited", "current"); });
+    Object.keys(edgeEl).forEach(function (k) { edgeEl[k].classList.remove("used"); });
+  }
+  function drawSeq(sc, upto) {
+    seqBox.innerHTML = "";
+    sc.seq.split("").forEach(function (k, i) {
+      if (i) { var a = document.createElement("i"); a.textContent = "→"; seqBox.appendChild(a); }
+      var s = document.createElement("span"); s.textContent = N[k].t; if (i <= upto) s.className = "on"; seqBox.appendChild(s);
+    });
+  }
+  function moveToken(a, b, dur) {
+    return new Promise(function (res) {
+      var g = seg(a, b), t0 = performance.now();
+      (function step(t) {
+        var p = Math.min(1, (t - t0) / dur), e = ease(p);
+        token.setAttribute("cx", g.x1 + (g.x2 - g.x1) * e); token.setAttribute("cy", g.y1 + (g.y2 - g.y1) * e);
+        if (p < 1) requestAnimationFrame(step); else res();
+      })(t0);
+    });
+  }
+  function showFinal(sc) {
+    clearSM(); var s = sc.seq;
+    for (var i = 0; i < s.length; i++) { nodeEl[s[i]].classList.add("visited"); if (i) { var e = s[i - 1] + s[i]; if (edgeEl[e]) edgeEl[e].classList.add("used"); } }
+    nodeEl[s[s.length - 1]].classList.add("current"); drawSeq(sc, s.length);
+  }
+  async function play(i) {
+    var my = ++runId, sc = SC[i], s = sc.seq; cur = i;
+    Array.prototype.forEach.call(tabs.children, function (b, j) { b.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+    if (reduce) { showFinal(sc); return; }
+    clearSM(); drawSeq(sc, -1); token.setAttribute("cx", N[s[0]].x); token.setAttribute("cy", N[s[0]].y);
+    for (var k = 0; k < s.length; k++) {
+      if (my !== runId) return;
+      if (k) {
+        var a = s[k - 1], b = s[k];
+        if (a !== b) { await moveToken(a, b, 650); if (edgeEl[a + b]) edgeEl[a + b].classList.add("used"); }
+        else { token.setAttribute("r", 11); await sleep(260); token.setAttribute("r", 6); }
+      }
+      if (my !== runId) return;
+      Object.keys(nodeEl).forEach(function (x) { nodeEl[x].classList.remove("current"); });
+      nodeEl[s[k]].classList.add("visited", "current"); drawSeq(sc, k); await sleep(520);
+    }
+    if (my !== runId) return;
+    await sleep(1800);
+    if (my !== runId) return;
+    play(picked >= 0 ? cur : (cur + 1) % SC.length);
+  }
+  SC.forEach(function (sc, i) {
+    var b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = sc.name + " <small>" + sc.agent + "</small>";
+    b.addEventListener("click", function () { picked = i; play(i); });
+    tabs.appendChild(b);
+  });
+  play(0);
+
+  /* ---------- stream replay ---------- */
+  var evs = Array.prototype.slice.call(document.querySelectorAll("#log .ev")), chunks = ["c1", "c2", "c3", "c4"].map($), pill = $("pill");
+  function resetStream() { evs.forEach(function (e) { e.classList.add("pending"); }); chunks.forEach(function (c) { c.classList.add("pending"); }); pill.textContent = "SUBMITTED"; pill.classList.remove("done"); }
+  async function streamLoop() {
+    while (true) {
+      resetStream(); await sleep(700);
+      for (var i = 0; i < evs.length; i++) {
+        evs[i].classList.remove("pending"); var c = evs[i].dataset.c; if (c) $(c).classList.remove("pending");
+        pill.textContent = evs[i].dataset.s; pill.classList.toggle("done", evs[i].dataset.s === "COMPLETED");
+        await sleep(620);
+      }
+      await sleep(3200);
+    }
+  }
+  if (!reduce) streamLoop();
+
+  /* ---------- lessons ---------- */
+  var L = [
+    ["Discovery", "reporter, vault", "Fetch the Agent Card, read skills and capabilities, pick a binding."],
+    ["Message", "echo", "Reply with a bare Message. No task is ever created. Reuse contextId."],
+    ["Tasks", "reporter", "Block until done, or return immediately and poll with GetTask and ListTasks."],
+    ["Streaming", "reporter", "SSE events and chunked artifacts. Dropping the stream does not cancel the task."],
+    ["Multi-turn", "booking", "INPUT_REQUIRED, then answer with the same taskId. Terminal tasks refuse more."],
+    ["Cancel", "slowpoke", "CancelTask aborts real work. A second observer joins with SubscribeToTask."],
+    ["Push", "reporter", "Register a webhook. The server posts every event with your token, and the receiver refuses forgeries."],
+    ["Auth", "vault", "Bearer auth, an extended card, and a second credential sent in a header for AUTH_REQUIRED."],
+    ["Bindings", "reporter", "The same calls over JSON-RPC and HTTP+JSON. Compare the errors."],
+    ["Errors", "echo", "Every A2A error code, JSON-RPC failures by hand, and version rejection."],
+    ["Parts", "inspector", "Text, data, raw and url parts. Plus the REJECTED and FAILED endings."],
+    ["Orchestration", "orchestrator", "One agent discovers and calls two others, sharing a contextId."],
+    ["Security", "vault, concierge", "Sign-in at the door, task ownership, callback checks, and a hostile agent's reply handled as data."]
+  ];
+  var lw = $("lessons");
+  L.forEach(function (l, i) {
+    var d = document.createElement("div"); d.className = "lesson";
+    d.innerHTML = '<div class="top"><b>L' + (i + 1) + "</b><span>" + l[1] + "</span></div><h3>" + l[0] + "</h3><p>" + l[2] + "</p><code>bun run lesson " + (i + 1) + "</code>";
+    lw.appendChild(d);
+  });
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1400); };
+      try { navigator.clipboard.writeText(b.dataset.copy).then(done, function () {}); } catch (e) {}
+    });
+  });
+})();
+</script>

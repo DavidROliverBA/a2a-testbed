@@ -1,0 +1,17 @@
+{
+  "name": "a2a-testbed",
+  "private": true,
+  "type": "module",
+  "description": "Learn the Agent2Agent (A2A) protocol v1.0 by running it: server, client, 9 agents, 13 lessons, conformance tests.",
+  "scripts": {
+    "serve": "bun src/testbed.ts",
+    "lesson": "bun src/lessons/index.ts",
+    "lessons": "bun src/lessons/index.ts all",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  }
+}
