@@ -93,6 +93,28 @@ POST /<agent>/rpc                       JSON-RPC 2.0 (method names: SendMessage,
 
 Every request passes through the same three layers. The checks happen in the first two, so an agent is only ever one `execute()` function.
 
+## Patterns and anti-patterns
+
+![Four patterns in turn: a coordinator with specialists, a gateway at the door, questions travelling back up the chain, and a callback with a poll to fall back on](docs/images/a2a-08-patterns.gif)
+
+| Pattern | What it is | In this lab |
+|---|---|---|
+| **Coordinator with specialists** | One agent takes the request and hands parts to agents that each do one thing. The caller sees one agent and one task. | `orchestrator`, lesson 12 |
+| **Gateway at the door** | Sign-in, limits and the version check happen before the agent runs. The agent gets an identity, never a credential. | `src/server/http.ts`, lessons 8 and 13 (no rate limiting) |
+| **Questions travel back up** | A coordinator whose specialist pauses with a question pauses its own task in the same state and asks its caller. The spec describes this chain for `AUTH_REQUIRED` (section 7.6). | Not built. `orchestrator` only calls agents that never pause. See exercise 7. |
+| **Callback, with a poll to fall back on** | Register a callback for long work, and confirm with `GetTask` before acting, because deliveries can be lost or repeated. | Callbacks in lesson 7, polling in lesson 6. No lesson combines them. |
+
+![Four things to avoid in turn: A2A inside one program, a long chain of agents, holding a connection open for hours, and obeying a reply from another agent](docs/images/a2a-09-anti-patterns.gif)
+
+| Anti-pattern | Why it hurts | In this lab |
+|---|---|---|
+| **A2A inside one program** | A function call does the same job with no network, sign-in or task store. | This lab does exactly this, on purpose: all nine agents share one process so you can watch the traffic. Don't copy that part. |
+| **The long chain** | Each hop adds delay, cost and a place to fail. One failure fails everything behind it. | The longest chain here is two hops (`orchestrator`, `concierge`). There is no end-to-end time limit. |
+| **Holding the line for hours** | A long-lived connection drops part-way. Use `returnImmediately`, then a callback or `GetTask`. | Lesson 4 abandons a stream; lesson 6 picks a task up again with `SubscribeToTask`. |
+| **Obeying what comes back** | A reply used as instructions lets the other agent steer yours. | `concierge` in naive mode, lesson 13 |
+| **An agent that should be an API** | A fixed job with a quick, predictable answer gains nothing from being an agent. | `echo` is one, kept as the simplest thing to call. |
+| **A shared database behind the protocol** | Two agents sharing tables are one system with two names. | Agents here share nothing but messages. |
+
 ## Code map
 
 ```
@@ -163,6 +185,7 @@ curl -s localhost:4747/vault/rest/extendedAgentCard -H 'Authorization: Bearer te
 4. Send a message with `taskId` to a task that's still `WORKING`. This lab refuses it; the spec lets an agent accept it. Change the runtime to accept it and decide what the agent should do with the extra message.
 5. Implement `tenant` routing (`/{tenant}/message:send`) in `src/server/http.ts`.
 6. Point the client at someone else's real A2A agent: `A2AClient.discover("https://…")` works against any v1.0 agent.
+7. Make `orchestrator` call `booking`. When `booking` answers `INPUT_REQUIRED`, pause the orchestrator's own task in the same state, pass the question to the caller and send the answer back down.
 
 ## Fidelity notes (what's real, what's simplified)
 
