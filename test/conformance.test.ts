@@ -432,11 +432,13 @@ describe("JSON-RPC protocol errors", () => {
 });
 
 describe("HTTP+JSON specifics", () => {
-  test("errors are application/problem+json with mapped status", async () => {
+  test("errors are google.rpc.Status JSON with ErrorInfo and mapped status", async () => {
     const res = await fetch(`${tb.baseUrl}/echo/rest/tasks/nope`);
     expect(res.status).toBe(404);
-    expect(res.headers.get("content-type")).toContain("application/problem+json");
-    expect(((await res.json()) as any).reason).toBe("TASK_NOT_FOUND");
+    expect(res.headers.get("content-type")).toContain("application/json");
+    const body = (await res.json()) as any;
+    expect(body.error).toMatchObject({ code: 404, status: "NOT_FOUND" });
+    expect(body.error.details[0]).toMatchObject({ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: "TASK_NOT_FOUND", domain: "a2a-protocol.org" });
     const bad = await fetch(`${tb.baseUrl}/echo/rest/message:send`, { method: "POST", body: "{x" });
     expect(bad.status).toBe(400);
     expect((await fetch(`${tb.baseUrl}/echo/rest/nothing`)).status).toBe(404);

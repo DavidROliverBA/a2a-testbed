@@ -4,7 +4,7 @@
  * reported to `opts.wire` so lessons can show exactly what crossed the network.
  */
 import {
-  A2AError, errorFromCode, message as mkMessage,
+  A2AError, errorFromCode, errorFromReason, message as mkMessage,
   type AgentCard, type AgentInterface, type ListTasksRequest, type ListTasksResponse, type Message,
   type SendMessageConfiguration, type SendMessageResponse, type StreamResponse, type Task, type TaskPushNotificationConfig,
 } from "../protocol.ts";
@@ -183,7 +183,9 @@ const enc = encodeURIComponent;
 function restError(status: number, text: string): A2AError {
   try {
     const p = JSON.parse(text);
-    if (typeof p.code === "number") return errorFromCode(p.code, p.detail ?? p.title);
+    const info = (p.error?.details ?? []).find((d: any) => d?.["@type"] === "type.googleapis.com/google.rpc.ErrorInfo");
+    const known = info && errorFromReason(info.reason, p.error.message ?? "");
+    if (known) return known;
   } catch { /* fallthrough */ }
   return httpError(status, text);
 }

@@ -199,7 +199,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
   <div class="stat"><b data-count="13">13</b><span>lessons</span></div>
   <div class="stat"><b data-count="70">70</b><span>tests</span></div>
   <div class="stat"><b data-count="11">11</b><span>operations, both bindings</span></div>
-  <div class="stat"><b data-count="14">14</b><span>error codes exercised</span></div>
+  <div class="stat"><b data-count="14">14</b><span>error codes defined</span></div>
   <div class="stat"><b data-count="0">0</b><span>runtime dependencies</span></div>
 </section>
 
@@ -283,7 +283,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
     <table class="optable">
       <thead><tr><th>Operation</th><th>JSON-RPC method</th><th>HTTP+JSON route</th><th>Failure looks like</th></tr></thead>
       <tbody>
-        <tr><td>Send a message</td><td>SendMessage</td><td>POST /message:send</td><td rowspan="4" style="font-family:var(--body);vertical-align:top">JSON-RPC: <span class="mono">{"error":{"code":-32001}}</span><br>REST: HTTP 404 with <span class="mono">application/problem+json</span></td></tr>
+        <tr><td>Send a message</td><td>SendMessage</td><td>POST /message:send</td><td rowspan="4" style="font-family:var(--body);vertical-align:top">JSON-RPC: <span class="mono">{"error":{"code":-32001}}</span><br>REST: HTTP 404 with <span class="mono">{"error":{"status":"NOT_FOUND"}}</span></td></tr>
         <tr><td>Stream the work</td><td>SendStreamingMessage</td><td>POST /message:stream</td></tr>
         <tr><td>Check a task</td><td>GetTask</td><td>GET /tasks/{id}</td></tr>
         <tr><td>Cancel a task</td><td>CancelTask</td><td>POST /tasks/{id}:cancel</td></tr>
@@ -490,7 +490,7 @@ footer { font-size: 13px; color: var(--muted); max-width: 70ch; }
     ["Push", "reporter", "Register a webhook. The server posts every event with your token, and the receiver refuses forgeries."],
     ["Auth", "vault", "Bearer auth, an extended card, and a second credential sent in a header for AUTH_REQUIRED."],
     ["Bindings", "reporter", "The same calls over JSON-RPC and HTTP+JSON. Compare the errors."],
-    ["Errors", "echo", "Every A2A error code, JSON-RPC failures by hand, and version rejection."],
+    ["Errors", "echo", "The common A2A error codes, JSON-RPC failures by hand, and version rejection."],
     ["Parts", "inspector", "Text, data, raw and url parts. Plus the REJECTED and FAILED endings."],
     ["Orchestration", "orchestrator", "One agent discovers and calls two others, sharing a contextId."],
     ["Security", "vault, concierge", "Sign-in at the door, task ownership, callback checks, and a hostile agent's reply handled as data."]

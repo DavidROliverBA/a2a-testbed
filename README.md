@@ -148,11 +148,11 @@ curl -s localhost:4747/echo/rpc -H 'content-type: application/json' -H 'A2A-Vers
   -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{"text":"hi"}]}}}' | jq
 
 # HTTP+JSON streaming (watch SSE events arrive)
-curl -sN localhost:4747/reporter/rest/message:stream -H 'content-type: application/json' \
+curl -sN localhost:4747/reporter/rest/message:stream -H 'content-type: application/json' -H 'A2A-Version: 1.0' \
   -d '{"message":{"messageId":"m2","role":"ROLE_USER","parts":[{"text":"curl"}]}}'
 
 # Auth
-curl -s localhost:4747/vault/rest/extendedAgentCard -H 'Authorization: Bearer testbed-token' | jq '.skills[].id'
+curl -s localhost:4747/vault/rest/extendedAgentCard -H 'Authorization: Bearer testbed-token' -H 'A2A-Version: 1.0' | jq '.skills[].id'
 ```
 
 ## Exercises
@@ -160,27 +160,29 @@ curl -s localhost:4747/vault/rest/extendedAgentCard -H 'Authorization: Bearer te
 1. In lesson 4, remove the `break` so the abandoned stream finishes; then compare the event sequence with push deliveries in lesson 7. Same `StreamResponse`s, different delivery.
 2. Add a `translator` agent that returns a `data` artifact, then make `orchestrator` call it too.
 3. Make `reporter` honour `acceptedOutputModes` from the request configuration.
-4. Send a message with `taskId` to a task that's still `WORKING`. Read the error; why does the spec forbid it?
+4. Send a message with `taskId` to a task that's still `WORKING`. This lab refuses it; the spec lets an agent accept it. Change the runtime to accept it and decide what the agent should do with the extra message.
 5. Implement `tenant` routing (`/{tenant}/message:send`) in `src/server/http.ts`.
 6. Point the client at someone else's real A2A agent: `A2AClient.discover("https://…")` works against any v1.0 agent.
 
 ## Fidelity notes (what's real, what's simplified)
 
-Built on 2026-11-15 from the v1.0.0 spec text plus `a2a.proto`. Where the prose and proto were ambiguous, the proto won.
+Built on 2026-11-15 from the v1.0.0 spec text plus `a2a.proto`, and checked against the v1.0.0 text again after the first release. Where the prose and proto disagree, the proto won. (v1.0.1 came out in May 2026; its `a2a.proto` differs from v1.0.0 only in comments.)
 
-**Faithful:** Agent Card shape (`supportedInterfaces`, `securitySchemes` in proto-oneof form), no `kind` discriminators, ProtoJSON enums, all 11 operations on both bindings, all 9 A2A error codes + JSON-RPC ones with `ErrorInfo`, SSE framing, `returnImmediately`, `historyLength`, ListTasks paging, idempotent push delete, terminal-immutability.
+**Faithful:** Agent Card shape (`supportedInterfaces`, `securitySchemes` in proto-oneof form), no `kind` discriminators, ProtoJSON enums, all 11 operations on both bindings, all 9 A2A error codes plus the 5 JSON-RPC ones, with the spec's status mapping and an `ErrorInfo` detail on both bindings (the tests trigger 11 of the 14; `InternalError`, `InvalidAgentResponseError` and `ExtensionSupportRequiredError` are defined but never provoked), SSE framing, `returnImmediately`, `historyLength`, ListTasks paging, idempotent push delete, terminal-immutability.
 
 **Simplified / not implemented** (good extension projects):
 - **gRPC binding.** `a2a.proto` is right there.
 - Plain `http://` on localhost; the spec requires HTTPS in production.
 - `tenant`, Agent Card **signatures**, **extensions** (`A2A-Extensions`), OAuth/OIDC/mTLS (only bearer is enforced; the others are declarable in the card).
-- The step-up header and the `X-A2A-Notification-Token` callback header are this lab's choices. Check the spec and your SDK for the names real agents use.
+- The `X-Step-Up-Token` header is this lab's invention. The spec says a credential asked for mid-task arrives out of band unless an extension agrees another way, and names no header. `X-A2A-Notification-Token` appears in a spec example but is not a required name; the spec's rule is that callbacks carry whatever the push config's `authentication` field asks for. This lab sends both: the token in that header, and an `Authorization` header when `authentication` is set.
 - Version check is lenient: a missing `A2A-Version` is accepted as 1.0 (the spec treats it as 0.3).
-- Streams close at *interrupted* states as well as terminal ones; the spec leaves this to implementations.
-- `TaskNotCancelableError` maps to HTTP 409 here; I wasn't able to confirm the spec's exact REST status table.
+- Streams close at *interrupted* states as well as terminal ones. The spec's HTTP+JSON section says the same; its auth section says an agent should keep the stream open in `AUTH_REQUIRED` when the credential arrives out of band. This lab always closes.
+- A message sent to a task that is still `WORKING` is refused. The spec only forbids messages to *terminal* tasks; accepting them in other states is up to the agent.
+- `SubscribeToTask` over HTTP+JSON is `GET` in the proto and `POST` in the spec prose. The server accepts both; the client sends `GET`.
+- The callback address check is stricter than the spec, which only says agents *should* reject private addresses.
 - In-memory task store: restarting loses all tasks.
 
-For production, use the official SDK (`@a2a-js/sdk`, 1.3.0 at time of writing) instead of this server. This repo exists so you understand what it does for you.
+For production, use an official SDK instead of this server (for JavaScript, `@a2a-js/sdk`, 1.3.0 at time of writing; there are also Python, Go, Java, .NET and Rust ones). This repo exists so you understand what it does for you.
 
 ## Licence
 

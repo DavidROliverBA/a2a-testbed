@@ -8,7 +8,7 @@
  * Auth (`Authorization: Bearer …`) and the `A2A-Version` header are enforced here,
  * *outside* the protocol logic, as the spec intends.
  */
-import { A2AError, Errors, PROTOCOL_VERSION, type AgentCard, type StreamResponse } from "../protocol.ts";
+import { A2AError, Errors, PROTOCOL_VERSION, grpcStatusOf, type AgentCard, type StreamResponse } from "../protocol.ts";
 import { TaskRuntime, type AgentDef, type Caller, type Channel } from "./runtime.ts";
 
 export interface Testbed {
@@ -139,14 +139,14 @@ async function handleRpc(rt: TaskRuntime, req: Request, caller: Caller, versionE
 
 // ===================================================================== HTTP+JSON (REST)
 
-function problem(e: A2AError): Response {
-  return new Response(
-    JSON.stringify({
-      type: `https://a2a-protocol.org/errors/${e.reason.toLowerCase().replaceAll("_", "-")}`,
-      title: e.kind, status: e.httpStatus, detail: e.message, code: e.code, reason: e.reason,
-    }),
-    { status: e.httpStatus, headers: { "content-type": "application/problem+json" } },
-  );
+/** Errors in the google.rpc.Status JSON form, with an ErrorInfo detail naming the A2A error (spec 11.6). */
+function restError(e: A2AError): Response {
+  return json({
+    error: {
+      code: e.httpStatus, status: grpcStatusOf(e), message: e.message,
+      details: [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: e.reason, domain: "a2a-protocol.org" }],
+    },
+  }, { status: e.httpStatus });
 }
 
 async function handleRest(rt: TaskRuntime, req: Request, url: URL, path: string, caller: Caller, versionError: A2AError | undefined, log: (s: string) => void): Promise<Response> {
@@ -175,7 +175,8 @@ async function handleRest(rt: TaskRuntime, req: Request, url: URL, path: string,
       const id = decodeURIComponent(t[1]!);
       if (m === "GET" && !t[2]) return json(rt.getTask(id, num("historyLength"), caller));
       if (m === "POST" && t[2] === ":cancel") return json(rt.cancel(id, caller));
-      if (m === "GET" && t[2] === ":subscribe") return sse(rt.subscribe(id, caller), (ev) => ev);
+      // The proto says GET, the spec prose says POST; accept both.
+      if ((m === "GET" || m === "POST") && t[2] === ":subscribe") return sse(rt.subscribe(id, caller), (ev) => ev);
     }
     const pc = path.match(/^\/tasks\/([^/]+)\/pushNotificationConfigs(?:\/([^/]+))?$/);
     if (pc) {
@@ -188,7 +189,7 @@ async function handleRest(rt: TaskRuntime, req: Request, url: URL, path: string,
     }
     throw Errors.methodNotFound(`${m} ${path}`);
   } catch (e) {
-    return problem(asA2A(e));
+    return restError(asA2A(e));
   }
 }
 

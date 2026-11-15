@@ -195,11 +195,30 @@ export const Errors = {
   pushNotSupported: () => new A2AError(-32003, "PushNotificationNotSupportedError", "This agent does not support push notifications", "PUSH_NOTIFICATION_NOT_SUPPORTED", 400),
   unsupported: (d: string) => new A2AError(-32004, "UnsupportedOperationError", d, "UNSUPPORTED_OPERATION", 400),
   contentType: (d: string) => new A2AError(-32005, "ContentTypeNotSupportedError", d, "CONTENT_TYPE_NOT_SUPPORTED", 415),
-  invalidAgentResponse: (d: string) => new A2AError(-32006, "InvalidAgentResponseError", d, "INVALID_AGENT_RESPONSE", 500),
+  invalidAgentResponse: (d: string) => new A2AError(-32006, "InvalidAgentResponseError", d, "INVALID_AGENT_RESPONSE", 502),
   extendedCardNotConfigured: () => new A2AError(-32007, "ExtendedAgentCardNotConfiguredError", "This agent has no extended agent card", "EXTENDED_AGENT_CARD_NOT_CONFIGURED", 400),
   extensionRequired: (uri: string) => new A2AError(-32008, "ExtensionSupportRequiredError", `Required extension not supported: ${uri}`, "EXTENSION_SUPPORT_REQUIRED", 400),
   versionNotSupported: (v: string) => new A2AError(-32009, "VersionNotSupportedError", `Unsupported A2A version: ${v} (this server speaks ${PROTOCOL_VERSION})`, "VERSION_NOT_SUPPORTED", 400),
 };
+
+/** gRPC status names, used in the HTTP+JSON error body (spec 5.4 and 11.6). */
+const GRPC_STATUS: Record<string, string> = {
+  TASK_NOT_FOUND: "NOT_FOUND", TASK_NOT_CANCELABLE: "FAILED_PRECONDITION",
+  PUSH_NOTIFICATION_NOT_SUPPORTED: "UNIMPLEMENTED", UNSUPPORTED_OPERATION: "UNIMPLEMENTED",
+  CONTENT_TYPE_NOT_SUPPORTED: "INVALID_ARGUMENT", INVALID_AGENT_RESPONSE: "INTERNAL",
+  EXTENDED_AGENT_CARD_NOT_CONFIGURED: "FAILED_PRECONDITION", EXTENSION_SUPPORT_REQUIRED: "FAILED_PRECONDITION",
+  VERSION_NOT_SUPPORTED: "UNIMPLEMENTED",
+  JSON_PARSE_ERROR: "INVALID_ARGUMENT", INVALID_REQUEST: "INVALID_ARGUMENT", INVALID_PARAMS: "INVALID_ARGUMENT",
+  METHOD_NOT_FOUND: "NOT_FOUND", INTERNAL_ERROR: "INTERNAL",
+};
+export const grpcStatusOf = (e: A2AError): string => GRPC_STATUS[e.reason] ?? "UNKNOWN";
+
+/** Reconstruct an error on the client side from an ErrorInfo reason (HTTP+JSON binding). */
+export function errorFromReason(reason: string, message: string): A2AError | undefined {
+  const known = Object.values(Errors).map((f) => (f as (...a: string[]) => A2AError)("x", "x"));
+  const hit = known.find((e) => e.reason === reason);
+  return hit && new A2AError(hit.code, hit.kind, message, hit.reason, hit.httpStatus);
+}
 
 /** Reconstruct an error on the client side from a JSON-RPC code. */
 export function errorFromCode(code: number, message: string): A2AError {
