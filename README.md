@@ -7,6 +7,8 @@ A hands-on lab for the **Agent2Agent (A2A) protocol v1.0**. Zero runtime depende
 - **13 narrated lessons** that print the actual HTTP traffic
 - **70 tests**, most run against both bindings, as executable documentation
 
+![One request passes from your app to the orchestrator agent, which calls the echo agent and the reporter agent and streams the result back](docs/images/a2a-01-call-graph.gif)
+
 ```bash
 bun install
 bun run lesson          # list lessons
@@ -35,17 +37,29 @@ A2A lets **independent agents** (different vendors, frameworks, servers) collabo
 | **Push** | Server POSTs events to your webhook for long-running tasks. | 7 |
 | **Bindings** | One data model, three transports: JSON-RPC, HTTP+JSON, gRPC. | 9 |
 
+### Discovery
+
+![A client fetches the Agent Card, reads the fields, picks an interface and only then sends its first message](docs/images/a2a-02-discovery.gif)
+
+The card comes first. It tells the client what the agent can do and which address to send messages to (lesson 1).
+
 ### Task state machine
 
-```
-              ┌──────────────► INPUT_REQUIRED ──┐ (interrupted: client replies
-              │                AUTH_REQUIRED ──┤  with same taskId)
-SUBMITTED ─► WORKING ◄────────────────────────┘
-                 ├──► COMPLETED   ┐
-                 ├──► FAILED      │ terminal: immutable, can't be continued
-                 ├──► CANCELED    │ (start a new task; reuse contextId)
-                 └──► REJECTED    ┘
-```
+![A token moves through the task states for six scenarios: plain work, a question back, a credential request, a cancel, a failure and a refusal](docs/images/a2a-03-task-states.gif)
+
+Six ways a task can go, each produced by one of the lab's agents. Dashed boxes are *interrupted* states: the task is alive and waits for the client to reply with the same `taskId`. Heavy borders are *terminal*: the task can never change again, so a follow-up is a new task that reuses the `contextId`.
+
+### Streaming
+
+![Events arrive one by one on the left while the report assembles piece by piece on the right](docs/images/a2a-04-streaming.gif)
+
+The actual event sequence the `reporter` agent sends for `SendStreamingMessage`: the task first, then status updates and artifact chunks, ending on the final state (lesson 4).
+
+### Where A2A fits next to MCP
+
+![MCP links each agent to its own tools; A2A links the two agents across the company boundary](docs/images/a2a-05-a2a-and-mcp.gif)
+
+MCP connects an agent to its own tools. A2A connects an agent to another agent, without either seeing inside the other.
 
 ### Message or Task?
 
@@ -73,12 +87,20 @@ POST /<agent>/rpc                       JSON-RPC 2.0 (method names: SendMessage,
 *    /<agent>/rest/message:send         HTTP+JSON (…/tasks/{id}, …/tasks/{id}:cancel, …)
 ```
 
+## How the lab is built
+
+![A request passes through the HTTP layer, the task runtime and an agent, and events flow back to the client](docs/images/a2a-07-inside-the-testbed.gif)
+
+Every request passes through the same three layers. The checks happen in the first two, so an agent is only ever one `execute()` function.
+
 ## Code map
 
 ```
 a2a.proto                  normative spec (copied from a2aproject/A2A v1.0.0, Apache 2.0; see NOTICE)
 examples/hello-agent.ts    a complete agent in one file, and hello-client.ts to call it
 showcase.html              an animated one-page tour of the lab (open it in a browser)
+docs/images/*.gif          the diagrams on this page
+docs/diagrams/gifs.ts      draws them: `bun docs/diagrams/gifs.ts` (needs rsvg-convert and ffmpeg)
 src/protocol.ts            types, state sets, error catalogue, helpers
 src/server/runtime.ts      the state machine: tasks, history, streaming fan-out, cancel, push
 src/server/http.ts         both bindings, SSE, auth gate, A2A-Version check
@@ -102,6 +124,8 @@ async execute({ message, bus, signal }) {
 ```
 
 ## Security (lesson 13)
+
+![Four checks on the traffic between two agents: the card, the caller, the result and the callback, each made on the receiving side](docs/images/a2a-06-security-checks.gif)
 
 Run `bun run lesson 13`. It walks the checks every A2A deployment needs, each one implemented here:
 
